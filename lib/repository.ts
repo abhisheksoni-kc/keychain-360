@@ -100,11 +100,12 @@ export function updateProduct(id: string, patch: Partial<Product>): Product | un
 }
 
 export function getProductFilters() {
-  return {
-    stages: [...new Set(_products.map(p => p.stage).filter(Boolean))] as string[],
-    brands: [...new Set(_products.map(p => p.brand))],
-    categories: [...new Set(_products.map(p => p.category))],
-  }
+  const stages = Array.from(
+    new Set(_products.map(p => p.stage).filter((s): s is string => s !== null))
+  )
+  const brands = Array.from(new Set(_products.map(p => p.brand)))
+  const categories = Array.from(new Set(_products.map(p => p.category)))
+  return { stages, brands, categories }
 }
 
 // ---- Projects ----
