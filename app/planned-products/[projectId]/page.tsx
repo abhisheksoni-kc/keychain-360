@@ -32,6 +32,19 @@ type ProjectDetail = {
 
 const PIPELINE_STAGES = ['Shortlisted', 'Verification', 'NDA', 'RFI', 'Quick Bid']
 
+// Derive a deterministic bg/color for the project initials square
+function projectColor(name: string) {
+  const palettes = [
+    { bg: '#D1FAE5', color: '#065F46' },
+    { bg: '#DBEAFE', color: '#1D4ED8' },
+    { bg: '#FEF3C7', color: '#92400E' },
+    { bg: '#F3E8FF', color: '#7E22CE' },
+    { bg: '#FEE2E2', color: '#B91C1C' },
+  ]
+  const idx = (name.charCodeAt(0) || 65) % palettes.length
+  return palettes[idx]
+}
+
 export default function ProjectDetailPage({ params }: { params: { projectId: string } }) {
   const [project, setProject] = useState<ProjectDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -50,15 +63,21 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
   if (loading) return <div style={{ padding: 40, color: 'var(--muted2)' }}>Loading…</div>
   if (!project) return (
     <div style={{ padding: 40 }}>
-      <Link href="/planned-products" style={{ color: 'var(--blue)', fontSize: 13 }}>← All Products</Link>
+      <Link href="/planned-products" style={{ color: '#2563EB', fontSize: 13, textDecoration: 'none' }}>
+        ← All Projects
+      </Link>
       <p style={{ marginTop: 16, color: 'var(--muted2)' }}>Project not found.</p>
     </div>
   )
 
+  // Pipeline: count suppliers per stage
   const stagesWithCount: Record<string, number> = {}
-  project.suppliers.forEach(s => { stagesWithCount[s.pipelineStage] = (stagesWithCount[s.pipelineStage] ?? 0) + 1 })
-  const shortlistedCount = stagesWithCount['Shortlisted'] ?? project.suppliers.length
+  project.suppliers.forEach(s => {
+    stagesWithCount[s.pipelineStage] = (stagesWithCount[s.pipelineStage] ?? 0) + 1
+  })
+  const shortlistedCount = project.suppliers.length
 
+  // Filter suppliers
   const filteredSuppliers = project.suppliers.filter(s => {
     if (supplierSearch && !s.name.toLowerCase().includes(supplierSearch.toLowerCase())) return false
     if (statusFilter && s.stage !== statusFilter) return false
@@ -67,129 +86,299 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
 
   const uniqueStages = Array.from(new Set(project.suppliers.map(s => s.stage)))
 
-  // Derive the project initials from name
-  const initials = project.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+  // Project initials (max 2 chars) + color
+  const initials = project.name
+    .split(' ')
+    .slice(0, 2)
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+  const { bg: projBg, color: projColor } = projectColor(project.name)
 
   return (
     <div style={{ padding: '24px 32px', maxWidth: 1200 }}>
-      {/* Back */}
-      <Link href="/planned-products" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', textDecoration: 'none', marginBottom: 20 }}>
-        <NavIcon name="arrow-left" size={13} /> All Projects
+
+      {/* Back link */}
+      <Link
+        href="/planned-products"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          color: '#6B7280',
+          textDecoration: 'none',
+          marginBottom: 20,
+        }}
+      >
+        <NavIcon name="arrow-left" size={13} />
+        All Projects
       </Link>
 
-      {/* Project header */}
+      {/* Project header row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
-        {/* Initials placeholder (matches the real app "P2" style) */}
+
+        {/* Project initials avatar — 56px square with rounded corners */}
         <div style={{
-          width: 56, height: 56, borderRadius: 'var(--r)', background: '#E8F5EC',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 700, color: '#15803D', flexShrink: 0, border: '1px solid #BBF7D0',
+          width: 56,
+          height: 56,
+          borderRadius: 10,
+          background: projBg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 17,
+          fontWeight: 700,
+          color: projColor,
+          flexShrink: 0,
+          border: `1px solid ${projColor}33`,
         }}>
           {initials}
         </div>
+
+        {/* Title + meta */}
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>{project.name}</h1>
+          {/* Line 1: name + type pill inline */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+              {project.name}
+            </h1>
             <StatusPill label={project.type} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, color: 'var(--muted2)', flexWrap: 'wrap' }}>
+          {/* Line 2: Active pill · date · team · invite */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#6B7280', flexWrap: 'wrap' }}>
             <StatusPill label={project.status} />
+            <span style={{ color: '#D1D5DB' }}>•</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <NavIcon name="calendar" size={13} /> {project.date}
+              <NavIcon name="calendar" size={13} />
+              {project.date}
             </span>
+            <span style={{ color: '#D1D5DB' }}>•</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <NavIcon name="users" size={13} /> {project.teamMembers} Team Members
+              <NavIcon name="users" size={13} />
+              {project.teamMembers} Team Members
             </span>
-            <button style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#2563EB', fontWeight: 500 }}>
-              <NavIcon name="user-plus" size={13} /> Invite
+            <button style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 13,
+              color: '#2563EB',
+              fontWeight: 500,
+              padding: 0,
+            }}>
+              <NavIcon name="user-plus" size={13} />
+              Invite
             </button>
           </div>
         </div>
-        <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', background: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-          Options <NavIcon name="chevron-down" size={13} />
+
+        {/* Options button — top right */}
+        <button style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '7px 14px',
+          border: '1px solid #D1D5DB',
+          borderRadius: 6,
+          background: 'white',
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          color: 'var(--ink)',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          Options
+          <NavIcon name="chevron-down" size={13} />
         </button>
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar — yellow underline on active */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 24 }}>
         {['Timeline', 'Suppliers', 'Advanced Analysis ✨', 'Documents', 'Project Details'].map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             style={{
-              padding: '9px 18px', fontSize: 13.5, fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? 'var(--ink)' : 'var(--muted2)', background: 'none', border: 'none',
+              padding: '9px 18px',
+              fontSize: 13.5,
+              fontWeight: activeTab === tab ? 600 : 400,
+              color: activeTab === tab ? 'var(--ink)' : '#6B7280',
+              background: 'none',
+              border: 'none',
               borderBottom: activeTab === tab ? '2px solid #FACC15' : '2px solid transparent',
-              cursor: 'pointer', marginBottom: -1, whiteSpace: 'nowrap',
-            }}>
+              cursor: 'pointer',
+              marginBottom: -1,
+              whiteSpace: 'nowrap',
+            }}
+          >
             {tab}
           </button>
         ))}
       </div>
 
       {activeTab !== 'Suppliers' ? (
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted2)', fontSize: 14 }}>{activeTab} content coming soon.</div>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted2)', fontSize: 14 }}>
+          {activeTab} content coming soon.
+        </div>
       ) : (
         <>
           {/* All Suppliers header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>All Suppliers</h2>
-            <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', background: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-              <NavIcon name="plus" size={13} /> Add Supplier
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>All Suppliers</h2>
+            <button style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 14px',
+              border: '1px solid #D1D5DB',
+              borderRadius: 6,
+              background: 'white',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              color: 'var(--ink)',
+            }}>
+              <NavIcon name="plus" size={13} />
+              Add Supplier
             </button>
           </div>
 
           {/* Keychain AI banner */}
           {aiBannerVisible && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 18px', background: '#FFFDF0', border: '1px solid #FDE047', borderRadius: 'var(--r)', marginBottom: 20 }}>
-              {/* Radio/sparkle icon */}
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FDE047', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#92660C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+              padding: '14px 18px',
+              background: '#FFFDF0',
+              border: '1px solid #FDE047',
+              borderRadius: 10,
+              marginBottom: 20,
+            }}>
+              {/* Radio / pulse icon */}
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: '#FDE047',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {/* Radio waves icon */}
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#92660C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="4"/>
                   <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>
-                  Keychain AI{' '}
-                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <span>Keychain AI</span>
+                  {/* sparkle */}
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                   </svg>
-                  {' '}is searching for best-suited manufacturers.
+                  <span>is searching for best-suited manufacturers.</span>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--muted2)' }}>
+                <div style={{ fontSize: 13, color: '#6B7280' }}>
                   We'll share your project details with suppliers and notify you as soon as they respond.
                 </div>
               </div>
-              <button onClick={() => setAiBannerVisible(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--muted2)', padding: '2px 4px', whiteSpace: 'nowrap' }}>
+              <button
+                onClick={() => setAiBannerVisible(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  color: '#6B7280',
+                  padding: '2px 4px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
                 Hide
               </button>
             </div>
           )}
 
           {/* Pipeline stepper */}
-          <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '20px 32px', marginBottom: 20, boxShadow: 'var(--shadow-card)', background: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 16, left: '8%', right: '8%', height: 1.5, background: 'var(--line)', zIndex: 0 }} />
+          <div style={{
+            border: '1px solid var(--line)',
+            borderRadius: 14,
+            padding: '24px 32px',
+            marginBottom: 20,
+            boxShadow: '0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04)',
+            background: 'white',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
+              {/* Connecting line sits at the center of the circles (16px from top since circles are 32px) */}
+              <div style={{
+                position: 'absolute',
+                top: 15,
+                left: '10%',
+                right: '10%',
+                height: 1.5,
+                background: '#E5E7EB',
+                zIndex: 0,
+              }} />
+
               {PIPELINE_STAGES.map((stage, idx) => {
-                const count = stagesWithCount[stage] ?? (stage === 'Shortlisted' ? shortlistedCount : 0)
+                const count = stagesWithCount[stage] ?? 0
                 const isFirst = idx === 0
-                const completed = isFirst
-                const current = !isFirst && idx === 1
+                // First bubble is green-filled (shortlisted = done)
+                // Rest are empty circles
                 return (
-                  <div key={stage} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 1, flex: 1 }}>
+                  <div
+                    key={stage}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 8,
+                      zIndex: 1,
+                      flex: 1,
+                    }}
+                  >
+                    {/* Circle */}
                     <div style={{
-                      width: 32, height: 32, borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: completed ? 'var(--pill-green-DEFAULT, #15803D)' : current ? 'var(--ink)' : 'white',
-                      border: completed ? '2px solid #15803D' : current ? '2px solid var(--ink)' : '2px solid var(--line)',
-                      color: completed || current ? 'white' : 'var(--muted)',
-                      fontSize: 12, fontWeight: 600,
+                      width: 30,
+                      height: 30,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isFirst ? '#16A34A' : 'white',
+                      border: isFirst ? '2px solid #16A34A' : '2px solid #D1D5DB',
+                      color: isFirst ? 'white' : '#9CA3AF',
+                      fontSize: 13,
+                      fontWeight: 600,
                     }}>
-                      {completed ? <NavIcon name="check" size={14} /> : <div style={{ width: 10, height: 10, borderRadius: '50%', background: current ? 'white' : 'var(--line2)' }} />}
+                      {isFirst ? (
+                        /* checkmark */
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E5E7EB' }} />
+                      )}
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 500, color: completed || current ? 'var(--ink)' : 'var(--muted2)' }}>
-                        {stage} {count > 0 && <span style={{ fontWeight: 600 }}>{count}</span>}
-                      </div>
+                    {/* Label + count below */}
+                    <div style={{ textAlign: 'center', fontSize: 12.5, color: isFirst ? 'var(--ink)' : '#9CA3AF', fontWeight: isFirst ? 500 : 400 }}>
+                      {stage}
+                      {count > 0 && (
+                        <span style={{ fontWeight: 600, color: isFirst ? '#16A34A' : '#9CA3AF', marginLeft: 4 }}>
+                          {count}
+                        </span>
+                      )}
                     </div>
                   </div>
                 )
@@ -197,95 +386,220 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
             </div>
           </div>
 
-          {/* Search + Status filter row */}
+          {/* Search + Status filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--placeholder)' }}>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}>
                 <NavIcon name="search" size={14} />
               </span>
-              <input type="text" placeholder="Search Suppliers" value={supplierSearch} onChange={e => setSupplierSearch(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 'var(--r)', border: '1px solid var(--line)', fontSize: 13.5, outline: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search Suppliers"
+                value={supplierSearch}
+                onChange={e => setSupplierSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 32px',
+                  borderRadius: 8,
+                  border: '1px solid var(--line)',
+                  fontSize: 13.5,
+                  outline: 'none',
+                  color: 'var(--ink)',
+                }}
+              />
             </div>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-              style={{ padding: '8px 32px 8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--line)', fontSize: 13.5, color: 'var(--ink)', background: 'white', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              style={{
+                padding: '8px 32px 8px 12px',
+                borderRadius: 8,
+                border: '1px solid var(--line)',
+                fontSize: 13.5,
+                color: 'var(--ink)',
+                background: 'white',
+                outline: 'none',
+                cursor: 'pointer',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 10px center',
+              }}
+            >
               <option value="">Status</option>
               {uniqueStages.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
           {/* Supplier table */}
-          <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
+          <div style={{
+            border: '1px solid var(--line)',
+            borderRadius: 14,
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04)',
+          }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: 'var(--bg-soft)' }}>
+                <tr style={{ background: '#F9FAFB' }}>
                   {['Manufacturer', 'Added by', 'Current Status', 'Next Steps', ''].map((col, i) => (
-                    <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>{col}</th>
+                    <th key={i} style={{
+                      padding: '10px 16px',
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#6B7280',
+                      borderBottom: '1px solid var(--line)',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {col}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredSuppliers.length === 0 ? (
-                  <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--muted2)' }}>No suppliers found.</td></tr>
+                  <tr>
+                    <td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#9CA3AF' }}>
+                      No suppliers found.
+                    </td>
+                  </tr>
                 ) : filteredSuppliers.map((s, i) => (
-                  <tr key={s.id}
-                    style={{ borderBottom: i < filteredSuppliers.length - 1 ? '1px solid var(--line)' : 'none', background: 'white' }}
+                  <tr
+                    key={s.id}
+                    style={{
+                      borderBottom: i < filteredSuppliers.length - 1 ? '1px solid var(--line)' : 'none',
+                      background: 'white',
+                    }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'white')}
                   >
                     {/* Manufacturer */}
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 8, background: s.logoBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: s.logoColor, flexShrink: 0 }}>
+                        {/* Logo square */}
+                        <div style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 8,
+                          background: s.logoBg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: s.logoColor,
+                          flexShrink: 0,
+                          border: '1px solid rgba(0,0,0,0.06)',
+                        }}>
                           {s.logoInitials}
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>
                             {s.name}
+                            {/* sparkle */}
                             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                               <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                             </svg>
                           </div>
                           {s.keychainPreferred && (
-                            <div style={{ fontSize: 11.5, color: '#ca8a04', fontWeight: 500 }}>Keychain Preferred</div>
+                            <div style={{ fontSize: 11.5, color: '#9CA3AF', fontWeight: 400, marginTop: 1 }}>
+                              Keychain Preferred
+                            </div>
                           )}
                         </div>
                       </div>
                     </td>
+
                     {/* Added by */}
                     <td style={{ padding: '14px 16px' }}>
                       {s.addedByType === 'ai' ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#FDE047', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#92660C', flexShrink: 0 }}>k</div>
+                          {/* Yellow "k" circle for Keychain AI */}
+                          <div style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            background: '#FDE047',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: '#92660C',
+                            flexShrink: 0,
+                          }}>
+                            k
+                          </div>
                           <span style={{ fontSize: 13, color: 'var(--ink)' }}>{s.addedBy}</span>
-                          <span style={{ cursor: 'pointer', color: 'var(--muted2)' }}><NavIcon name="info" size={13} /></span>
+                          <span style={{ cursor: 'pointer', color: '#9CA3AF', display: 'flex', alignItems: 'center' }}>
+                            <NavIcon name="info" size={13} />
+                          </span>
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--ink)', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>AS</div>
+                          {/* Dark avatar for user */}
+                          <div style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            background: '#020817',
+                            color: 'white',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            letterSpacing: '0.02em',
+                          }}>
+                            ab
+                          </div>
                           <span style={{ fontSize: 13, color: 'var(--ink)' }}>{s.addedBy}</span>
                         </div>
                       )}
                     </td>
-                    {/* Status */}
+
+                    {/* Current Status */}
                     <td style={{ padding: '14px 16px' }}>
                       <StatusPill label={s.stage} />
                     </td>
+
                     {/* Next Steps */}
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--muted)' }}>
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#6B7280' }}>
                       {s.nextSteps.map((step, si) => (
                         <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {si === 0 && step === 'Review Response' && (
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', flexShrink: 0 }} />
+                          {step === 'Review Response' && (
+                            <div style={{
+                              width: 7,
+                              height: 7,
+                              borderRadius: '50%',
+                              background: '#EF4444',
+                              flexShrink: 0,
+                            }} />
                           )}
                           {step}
                         </div>
                       ))}
                     </td>
+
                     {/* View Tasks */}
                     <td style={{ padding: '14px 16px' }}>
                       <Link
                         href={`/planned-products/${params.projectId}/tasks/${s.id}`}
-                        style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 'var(--r-sm)', border: 'none', background: 'var(--ink)', color: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                        style={{
+                          display: 'inline-block',
+                          padding: '7px 16px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: '#020817',
+                          color: 'white',
+                          fontSize: 13,
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         View Tasks
                       </Link>
                     </td>

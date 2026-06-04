@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { NavIcon } from '@/components/shell/NavIcon'
 import { StatusPill } from '@/components/ui/StatusPill'
+import { ProductAvatar } from '@/components/ui/ProductAvatar'
 
 type Product = {
   id: string
@@ -28,19 +29,19 @@ const PAGE_SIZE = 10
 
 // ─── Pending data (seeded demo) ──────────────────────────────────────────────
 const PENDING_ON_YOU = [
-  { id: 1, action: 'Project Data Collection', product: '2% Reduced Fat Milk', stage: 'Data Collection', thumbnail: 'https://images.openfoodfacts.org/images/products/004/631/003/0004/front_en.27.400.jpg' },
-  { id: 2, action: 'Message Supplier', product: '2% Reduced Fat Milk', stage: 'Verification', thumbnail: 'https://images.openfoodfacts.org/images/products/004/631/003/0004/front_en.27.400.jpg' },
-  { id: 3, action: 'Send Intro', product: '2% Reduced Fat Milk', stage: 'Verification', thumbnail: 'https://images.openfoodfacts.org/images/products/004/631/003/0004/front_en.27.400.jpg' },
-  { id: 4, action: 'Send Intro', product: '2% Reduced Fat Milk', stage: 'Verification', thumbnail: 'https://images.openfoodfacts.org/images/products/004/631/003/0004/front_en.27.400.jpg' },
-  { id: 5, action: 'Send Intro', product: '2% Reduced Fat Milk', stage: 'Verification', thumbnail: 'https://images.openfoodfacts.org/images/products/004/631/003/0004/front_en.27.400.jpg' },
+  { id: 1, action: 'Project Data Collection', product: '2% Reduced Fat Milk', stage: 'Data Collection' },
+  { id: 2, action: 'Message Supplier', product: '2% Reduced Fat Milk', stage: 'Verification' },
+  { id: 3, action: 'Send Intro', product: '2% Reduced Fat Milk', stage: 'Verification' },
+  { id: 4, action: 'Send Intro', product: '2% Reduced Fat Milk', stage: 'Verification' },
+  { id: 5, action: 'Send Intro', product: '2% Reduced Fat Milk', stage: 'Verification' },
 ]
 
 const PENDING_FROM_SUPPLIERS = [
-  { id: 1, label: 'Awaiting Response', product: 'Amazon - 100% Natural Spring Water', stage: 'NDA', thumbnail: 'https://images.openfoodfacts.org/images/products/001/600/001/7007/front_en.3.400.jpg' },
-  { id: 2, label: 'Awaiting Response', product: 'Finely Shredded Iceberg Lettuce', stage: 'Verification', thumbnail: 'https://images.openfoodfacts.org/images/products/003/003/400/3003/front_en.4.400.jpg' },
-  { id: 3, label: 'Awaiting Response', product: 'Grape', stage: 'Data Collection', thumbnail: 'https://images.openfoodfacts.org/images/products/007/619/400/5030/front_en.5.400.jpg' },
-  { id: 4, label: 'Awaiting Response', product: 'Grape', stage: 'Data Collection', thumbnail: 'https://images.openfoodfacts.org/images/products/007/619/400/5030/front_en.5.400.jpg' },
-  { id: 5, label: 'Awaiting Response', product: 'Amazon - Real Mayonnaise', stage: 'Data Collection', thumbnail: 'https://images.openfoodfacts.org/images/products/008/113/001/2770/front_en.3.400.jpg' },
+  { id: 1, label: 'Awaiting Response', product: 'Amazon - 100% Natural Spring Water', stage: 'NDA' },
+  { id: 2, label: 'Awaiting Response', product: 'Finely Shredded Iceberg Lettuce', stage: 'Verification' },
+  { id: 3, label: 'Awaiting Response', product: 'Grape', stage: 'Data Collection' },
+  { id: 4, label: 'Awaiting Response', product: 'Grape', stage: 'Data Collection' },
+  { id: 5, label: 'Awaiting Response', product: 'Amazon - Real Mayonnaise', stage: 'Data Collection' },
 ]
 
 export default function PlannedProductsPage() {
@@ -89,7 +90,7 @@ export default function PlannedProductsPage() {
         Planned Products
       </h1>
 
-      {/* Tabs */}
+      {/* Top-level tabs: Dashboard | All Products */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 24 }}>
         {([['dashboard', 'Dashboard'], ['all', 'All Products']] as const).map(([tab, label]) => (
           <button
@@ -111,13 +112,17 @@ export default function PlannedProductsPage() {
             }}
           >
             {label}
-            {tab === 'all' && result && (
-              <span style={{ fontSize: 11, fontWeight: 600, background: 'var(--line)', borderRadius: 'var(--pill)', padding: '1px 7px', color: 'var(--muted)' }}>
-                {result.total >= 1000 ? `${(result.total / 1000).toFixed(1)}K` : result.total}
+            {tab === 'all' && (
+              <span style={{
+                fontSize: 11,
+                fontWeight: 600,
+                background: activeTab === 'all' ? 'rgba(0,0,0,0.07)' : 'var(--line)',
+                borderRadius: 9999,
+                padding: '1px 7px',
+                color: 'var(--muted)',
+              }}>
+                {result ? (result.total >= 1000 ? `${(result.total / 1000).toFixed(1)}K` : result.total) : '1.8K'}
               </span>
-            )}
-            {tab === 'all' && !result && (
-              <span style={{ fontSize: 11, fontWeight: 600, background: 'var(--line)', borderRadius: 'var(--pill)', padding: '1px 7px', color: 'var(--muted)' }}>1.8K</span>
             )}
           </button>
         ))}
@@ -152,59 +157,90 @@ function DashboardTab({ view, setView }: { view: 'all' | 'my'; setView: (v: 'all
 
   return (
     <div>
-      {/* All Products / My Products toggle */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 24 }}>
-        {(['all', 'my'] as const).map(v => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            style={{
-              padding: '6px 18px',
-              fontSize: 13,
-              fontWeight: 500,
-              background: view === v ? 'white' : 'transparent',
-              border: '1px solid var(--line)',
-              borderRadius: v === 'all' ? '8px 0 0 8px' : '0 8px 8px 0',
-              marginLeft: v === 'my' ? -1 : 0,
-              cursor: 'pointer',
-              color: view === v ? 'var(--ink)' : 'var(--muted2)',
-              boxShadow: view === v ? 'var(--shadow-card)' : 'none',
-            }}
-          >
-            {v === 'all' ? 'All Products' : 'My Products'}
-          </button>
-        ))}
+      {/* Pill toggle: All Products / My Products */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20 }}>
+        <div style={{
+          display: 'inline-flex',
+          background: '#F3F4F6',
+          borderRadius: 9999,
+          padding: 3,
+          gap: 2,
+        }}>
+          {(['all', 'my'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                padding: '5px 16px',
+                fontSize: 13,
+                fontWeight: view === v ? 600 : 400,
+                background: view === v ? 'white' : 'transparent',
+                border: 'none',
+                borderRadius: 9999,
+                cursor: 'pointer',
+                color: view === v ? 'var(--ink)' : 'var(--muted2)',
+                boxShadow: view === v ? '0 1px 3px rgba(17,24,39,.10), 0 1px 2px rgba(17,24,39,.06)' : 'none',
+                transition: 'all 0.12s',
+              }}
+            >
+              {v === 'all' ? 'All Products' : 'My Products'}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Metric cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', marginBottom: 24, boxShadow: 'var(--shadow-card)' }}>
+      {/* Metric cards — single card with 4 columns and dividers */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        border: '1px solid var(--line)',
+        borderRadius: 14,
+        overflow: 'hidden',
+        marginBottom: 24,
+        boxShadow: '0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04)',
+        background: 'white',
+      }}>
         {METRICS.map((m, i) => (
           <div
             key={m.label}
             style={{
               padding: '24px 28px',
               borderRight: i < METRICS.length - 1 ? '1px solid var(--line)' : 'none',
-              background: 'white',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 400 }}>{m.label}</span>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, color: '#6B7280', fontWeight: 400 }}>{m.label}</span>
+              {/* Arrow icon */}
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
               </svg>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 }}>{m.value}</div>
+            <div style={{ fontSize: 34, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 }}>{m.value}</div>
           </div>
         ))}
       </div>
 
       {/* Pending columns */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
         {/* Pending on You */}
-        <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Pending on You</span>
-            <span style={{ fontSize: 12, fontWeight: 600, background: '#F3F4F6', borderRadius: 'var(--pill)', padding: '2px 8px', color: 'var(--muted)' }}>174</span>
+        <div style={{
+          border: '1px solid var(--line)',
+          borderRadius: 14,
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04)',
+          background: 'white',
+        }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Pending on You</span>
+            <span style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              background: '#F3F4F6',
+              borderRadius: 9999,
+              padding: '2px 8px',
+              color: '#6B7280',
+            }}>174</span>
           </div>
           {PENDING_ON_YOU.map((item, i) => (
             <div
@@ -213,22 +249,29 @@ function DashboardTab({ view, setView }: { view: 'all' | 'my'; setView: (v: 'all
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '14px 20px',
+                padding: '13px 20px',
                 borderBottom: i < PENDING_ON_YOU.length - 1 ? '1px solid var(--line)' : 'none',
-                background: 'white',
               }}
             >
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-soft)', border: '1px solid var(--line)', overflow: 'hidden', flexShrink: 0 }}>
-                <img src={item.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              </div>
+              <ProductAvatar name={item.product} size={36} radius={8} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', marginBottom: 2 }}>{item.action}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted2)' }}>
-                  {item.product}
+                <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', marginBottom: 3 }}>{item.action}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted2)', flexWrap: 'wrap' }}>
+                  <span>{item.product}</span>
                   <StatusPill label={item.stage} />
                 </div>
               </div>
-              <button style={{ padding: '6px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line2)', background: 'white', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--ink)' }}>
+              <button style={{
+                padding: '5px 13px',
+                borderRadius: 6,
+                border: '1px solid #D1D5DB',
+                background: 'white',
+                fontSize: 12.5,
+                fontWeight: 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                color: 'var(--ink)',
+              }}>
                 Take Action
               </button>
             </div>
@@ -236,10 +279,23 @@ function DashboardTab({ view, setView }: { view: 'all' | 'my'; setView: (v: 'all
         </div>
 
         {/* Pending from Suppliers */}
-        <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Pending from Suppliers</span>
-            <span style={{ fontSize: 12, fontWeight: 600, background: '#F3F4F6', borderRadius: 'var(--pill)', padding: '2px 8px', color: 'var(--muted)' }}>43</span>
+        <div style={{
+          border: '1px solid var(--line)',
+          borderRadius: 14,
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04)',
+          background: 'white',
+        }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Pending from Suppliers</span>
+            <span style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              background: '#F3F4F6',
+              borderRadius: 9999,
+              padding: '2px 8px',
+              color: '#6B7280',
+            }}>43</span>
           </div>
           {PENDING_FROM_SUPPLIERS.map((item, i) => (
             <div
@@ -248,22 +304,29 @@ function DashboardTab({ view, setView }: { view: 'all' | 'my'; setView: (v: 'all
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '14px 20px',
+                padding: '13px 20px',
                 borderBottom: i < PENDING_FROM_SUPPLIERS.length - 1 ? '1px solid var(--line)' : 'none',
-                background: 'white',
               }}
             >
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-soft)', border: '1px solid var(--line)', overflow: 'hidden', flexShrink: 0 }}>
-                <img src={item.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              </div>
+              <ProductAvatar name={item.product} size={36} radius={8} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', marginBottom: 3 }}>{item.label}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted2)', flexWrap: 'wrap' }}>
-                  {item.product}
+                  <span>{item.product}</span>
                   <StatusPill label={item.stage} />
                 </div>
               </div>
-              <button style={{ padding: '6px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line2)', background: 'white', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap', color: 'var(--ink)' }}>
+              <button style={{
+                padding: '5px 13px',
+                borderRadius: 6,
+                border: '1px solid #D1D5DB',
+                background: 'white',
+                fontSize: 12.5,
+                fontWeight: 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                color: 'var(--ink)',
+              }}>
                 Send Message
               </button>
             </div>
@@ -284,19 +347,24 @@ function AllProductsTab({
     <>
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--placeholder)' }}>
-            <NavIcon name="search" size={14} />
-          </span>
-          <input
-            type="text"
-            placeholder="Search Planned Products..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '7px 12px 7px 32px', borderRadius: 'var(--r)', border: '1px solid var(--line)', fontSize: 13.5, color: 'var(--ink)', outline: 'none' }}
-          />
-        </div>
+        {/* Search input — no icon, per spec */}
+        <input
+          type="text"
+          placeholder="Search Planned Products..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            padding: '7px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--line)',
+            fontSize: 13.5,
+            color: 'var(--ink)',
+            outline: 'none',
+            width: 240,
+          }}
+        />
         <div style={{ flex: 1 }} />
+        {/* Filter dropdowns */}
         {[
           { key: 'stage', label: 'Stage', value: stageFilter, options: result?.filters.stages ?? [], setter: setStageFilter },
           { key: 'brand', label: 'Brand', value: brandFilter, options: result?.filters.brands ?? [], setter: setBrandFilter },
@@ -306,24 +374,51 @@ function AllProductsTab({
             <button
               onClick={() => setOpenFilter(openFilter === f.key ? null : f.key)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
-                borderRadius: 'var(--r-sm)', border: `1px solid ${f.value ? 'var(--ink)' : 'var(--line2)'}`,
-                background: f.value ? 'var(--ink)' : 'white', color: f.value ? 'white' : 'var(--ink)',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 12px',
+                borderRadius: 6,
+                border: `1px solid ${f.value ? 'var(--ink)' : '#D1D5DB'}`,
+                background: f.value ? 'var(--ink)' : 'white',
+                color: f.value ? 'white' : 'var(--ink)',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
               }}
             >
               {f.value || f.label}
               {f.value ? (
-                <span onClick={e => { e.stopPropagation(); f.setter(''); }}>
+                <span onClick={e => { e.stopPropagation(); f.setter('') }}>
                   <NavIcon name="x" size={12} />
                 </span>
               ) : <NavIcon name="chevron-down" size={13} />}
             </button>
             {openFilter === f.key && (
-              <div style={{ position: 'absolute', top: '110%', right: 0, minWidth: 160, background: 'white', border: '1px solid var(--line)', borderRadius: 'var(--r)', boxShadow: 'var(--shadow-card)', zIndex: 50 }}>
+              <div style={{
+                position: 'absolute',
+                top: '110%',
+                right: 0,
+                minWidth: 160,
+                background: 'white',
+                border: '1px solid var(--line)',
+                borderRadius: 8,
+                boxShadow: '0 4px 16px rgba(0,0,0,.10)',
+                zIndex: 50,
+              }}>
                 {f.options.map((opt: string) => (
                   <button key={opt} onClick={() => { f.setter(opt); setOpenFilter(null) }}
-                    style={{ display: 'block', width: '100%', padding: '8px 14px', fontSize: 13, color: 'var(--ink)', background: f.value === opt ? 'var(--bg-soft)' : 'white', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '8px 14px',
+                      fontSize: 13,
+                      color: 'var(--ink)',
+                      background: f.value === opt ? 'var(--bg-soft)' : 'white',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}>
                     {opt}
                   </button>
                 ))}
@@ -334,12 +429,26 @@ function AllProductsTab({
       </div>
 
       {/* Table */}
-      <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
+      <div style={{
+        border: '1px solid var(--line)',
+        borderRadius: 14,
+        overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(17,24,39,.06), 0 1px 2px rgba(17,24,39,.04)',
+      }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: 'var(--bg-soft)' }}>
+            <tr style={{ background: '#F9FAFB' }}>
               {['Products', 'Stage', 'Suppliers', 'Next Step', 'Actions'].map(col => (
-                <th key={col} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--line)' }}>{col}</th>
+                <th key={col} style={{
+                  padding: '10px 16px',
+                  textAlign: 'left',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#6B7280',
+                  borderBottom: '1px solid var(--line)',
+                }}>
+                  {col}
+                </th>
               ))}
             </tr>
           </thead>
@@ -349,42 +458,72 @@ function AllProductsTab({
             ) : result?.data.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--muted2)' }}>No products found.</td></tr>
             ) : result?.data.map((product: Product, i: number) => (
-              <tr key={product.id}
+              <tr
+                key={product.id}
                 style={{ borderBottom: i < result.data.length - 1 ? '1px solid var(--line)' : 'none', background: 'white' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'white')}
               >
+                {/* Product name + avatar */}
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-soft)', border: '1px solid var(--line)', overflow: 'hidden', flexShrink: 0 }}>
-                      <img src={product.thumbnail} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                    </div>
+                    <ProductAvatar name={product.name} size={36} radius={8} />
                     <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>{product.name}</span>
                   </div>
                 </td>
+                {/* Stage */}
                 <td style={{ padding: '12px 16px' }}>
-                  {product.stage ? <StatusPill label={product.stage} /> : <span style={{ color: 'var(--placeholder)', fontSize: 13 }}>--</span>}
+                  {product.stage
+                    ? <StatusPill label={product.stage} />
+                    : <span style={{ color: '#9CA3AF', fontSize: 13 }}>--</span>
+                  }
                 </td>
+                {/* Suppliers */}
                 <td style={{ padding: '12px 16px', fontSize: 13 }}>
-                  {product.suppliersActive > 0 || product.suppliersShortlisted > 0 ? (
+                  {product.suppliersActive > 0 ? (
                     <div>
-                      <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{product.suppliersActive} Active</span>
-                      <br /><span style={{ color: 'var(--muted2)' }}>{product.suppliersShortlisted} Shortlisted</span>
+                      <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{product.suppliersActive} Active</div>
+                      <div style={{ color: '#9CA3AF', marginTop: 1 }}>{product.suppliersShortlisted} Shortlisted</div>
                     </div>
                   ) : (
-                    <span style={{ color: 'var(--muted2)' }}>{product.suppliersShortlisted} Shortlisted</span>
+                    <div style={{ color: '#9CA3AF' }}>{product.suppliersShortlisted} Shortlisted</div>
                   )}
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--muted)' }}>{product.nextStep}</td>
+                {/* Next Step */}
+                <td style={{ padding: '12px 16px', fontSize: 13, color: '#6B7280' }}>{product.nextStep}</td>
+                {/* Actions */}
                 <td style={{ padding: '12px 16px' }}>
                   {product.projectId ? (
-                    <Link href={`/planned-products/${product.projectId}`}
-                      style={{ padding: '6px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500, color: 'var(--ink)', background: 'white', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    <Link
+                      href={`/planned-products/${product.projectId}`}
+                      style={{
+                        padding: '6px 14px',
+                        border: '1px solid #D1D5DB',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: 'var(--ink)',
+                        background: 'white',
+                        textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block',
+                      }}>
                       View Details
                     </Link>
                   ) : (
-                    <Link href={`/find-suppliers/${product.id}`}
-                      style={{ padding: '6px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', background: 'var(--yellow)', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                    <Link
+                      href={`/find-suppliers/${product.id}`}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#020817',
+                        background: '#FDE047',
+                        textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-block',
+                      }}>
                       Find Suppliers
                     </Link>
                   )}
@@ -397,13 +536,21 @@ function AllProductsTab({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, marginTop: 20 }}>
           <PaginationBtn label="← Previous" disabled={page === 1} onClick={() => setPage((p: number) => p - 1)} />
+          {/* First 8 pages */}
           {Array.from({ length: Math.min(8, totalPages) }, (_, i) => i + 1).map((p: number) => (
             <PaginationBtn key={p} label={String(p)} active={p === page} onClick={() => setPage(p)} />
           ))}
-          {totalPages > 8 && <span style={{ padding: '0 4px', color: 'var(--muted2)' }}>…</span>}
-          {totalPages > 8 && <PaginationBtn label={String(totalPages)} active={page === totalPages} onClick={() => setPage(totalPages)} />}
+          {totalPages > 8 && (
+            <>
+              <span style={{ padding: '0 6px', color: 'var(--muted2)', fontSize: 13 }}>…</span>
+              {/* Show last 3 pages */}
+              {[totalPages - 2, totalPages - 1, totalPages].filter(p => p > 8).map((p: number) => (
+                <PaginationBtn key={p} label={String(p)} active={p === page} onClick={() => setPage(p)} />
+              ))}
+            </>
+          )}
           <PaginationBtn label="Next →" disabled={page === totalPages} onClick={() => setPage((p: number) => p + 1)} />
         </div>
       )}
@@ -411,10 +558,27 @@ function AllProductsTab({
   )
 }
 
-function PaginationBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
+function PaginationBtn({
+  label, active, disabled, onClick,
+}: {
+  label: string; active?: boolean; disabled?: boolean; onClick: () => void
+}) {
   return (
-    <button onClick={onClick} disabled={disabled}
-      style={{ padding: '6px 11px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line)', background: active ? 'var(--yellow)' : 'white', color: active ? 'var(--ink)' : disabled ? 'var(--placeholder)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 600 : 400, cursor: disabled ? 'default' : 'pointer' }}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: '6px 11px',
+        borderRadius: 6,
+        border: '1px solid #E5E7EB',
+        background: active ? '#FDE047' : 'white',
+        color: disabled ? '#D1D5DB' : 'var(--ink)',
+        fontSize: 13,
+        fontWeight: active ? 600 : 400,
+        cursor: disabled ? 'default' : 'pointer',
+        minWidth: 36,
+      }}
+    >
       {label}
     </button>
   )

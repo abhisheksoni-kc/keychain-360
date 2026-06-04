@@ -3,8 +3,8 @@
 import { NavIcon } from './NavIcon'
 
 const BRAND_LOGOS = [
-  { label: 'Amazon', initials: 'A', color: '#FF9900', bg: '#FFF8ED' },
-  { label: 'WF', initials: 'WF', color: '#1a6b3a', bg: '#E8F5ED' },
+  { label: 'Amazon', initials: 'A', color: '#FF9900', bg: '#FFF8ED', border: '#FFCC80' },
+  { label: 'Whole Foods', initials: 'WF', color: '#1a6b3a', bg: '#E8F5ED', border: '#86EFAC' },
 ]
 
 export function TopBar() {
@@ -15,14 +15,14 @@ export function TopBar() {
         borderBottom: '1px solid var(--line)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        padding: '0 24px',
+        gap: 10,
+        padding: '0 20px',
         background: 'white',
         flexShrink: 0,
       }}
     >
-      {/* Search */}
-      <div style={{ flex: 1, maxWidth: 480 }}>
+      {/* Search — pill shaped */}
+      <div style={{ flex: 1, maxWidth: 500 }}>
         <div
           style={{
             display: 'flex',
@@ -30,10 +30,11 @@ export function TopBar() {
             gap: 8,
             background: 'var(--bg-soft)',
             border: '1px solid var(--line)',
-            borderRadius: 'var(--pill)',
-            padding: '8px 14px',
+            borderRadius: 9999,
+            padding: '7px 16px',
             color: 'var(--placeholder)',
             fontSize: 13.5,
+            cursor: 'text',
           }}
         >
           <NavIcon name="search" size={15} />
@@ -42,24 +43,27 @@ export function TopBar() {
       </div>
 
       {/* Brand logos */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        {BRAND_LOGOS.map((b) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: -4, marginLeft: 4 }}>
+        {BRAND_LOGOS.map((b, i) => (
           <div
             key={b.label}
             title={b.label}
             style={{
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               borderRadius: '50%',
               background: b.bg,
-              border: '1.5px solid var(--line)',
+              border: `2px solid ${b.border}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 11,
+              fontSize: b.initials.length > 1 ? 10 : 13,
               fontWeight: 700,
               color: b.color,
               cursor: 'pointer',
+              marginLeft: i > 0 ? -6 : 0,
+              zIndex: BRAND_LOGOS.length - i,
+              position: 'relative',
             }}
           >
             {b.initials}
@@ -74,13 +78,14 @@ export function TopBar() {
           alignItems: 'center',
           gap: 6,
           padding: '6px 14px',
-          border: '1px solid var(--line2)',
-          borderRadius: 'var(--r-sm)',
+          border: '1px solid #D1D5DB',
+          borderRadius: 6,
           background: 'white',
           fontSize: 13,
           fontWeight: 500,
           color: 'var(--ink)',
           cursor: 'pointer',
+          whiteSpace: 'nowrap',
         }}
       >
         <NavIcon name="user-plus" size={14} />
@@ -91,8 +96,8 @@ export function TopBar() {
       <div style={{ position: 'relative' }}>
         <button
           style={{
-            width: 36,
-            height: 36,
+            width: 34,
+            height: 34,
             borderRadius: '50%',
             border: '1px solid var(--line)',
             background: 'white',
@@ -108,22 +113,25 @@ export function TopBar() {
         <span
           style={{
             position: 'absolute',
-            top: -2,
-            right: -2,
+            top: -3,
+            right: -4,
             background: '#EF4444',
             color: 'white',
-            borderRadius: 'var(--pill)',
-            fontSize: 10,
+            borderRadius: 9999,
+            fontSize: 9,
             fontWeight: 700,
-            padding: '1px 5px',
-            lineHeight: 1.4,
+            padding: '1px 4px',
+            lineHeight: 1.5,
+            minWidth: 16,
+            textAlign: 'center',
           }}
         >
-          3
+          50
         </span>
       </div>
 
-      <div style={{ width: 1, height: 28, background: 'var(--line)' }} />
+      {/* Divider */}
+      <div style={{ width: 1, height: 28, background: 'var(--line)', marginLeft: 2, marginRight: 2 }} />
 
       {/* Avatar + user info */}
       <button
@@ -134,6 +142,7 @@ export function TopBar() {
           background: 'none',
           border: 'none',
           cursor: 'pointer',
+          padding: '2px 0',
         }}
       >
         <div
@@ -146,18 +155,19 @@ export function TopBar() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 600,
+            letterSpacing: '0.02em',
           }}
         >
-          AS
+          ab
         </div>
         <div style={{ textAlign: 'left' }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>
             abhishek+amazon
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--muted2)', lineHeight: 1.2 }}>
-            Amazon Grocery
+            Amazon
           </div>
         </div>
         <NavIcon name="chevron-down" size={14} />
