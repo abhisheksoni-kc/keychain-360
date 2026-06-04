@@ -37,204 +37,158 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Suppliers')
   const [aiBannerVisible, setAiBannerVisible] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [supplierSearch, setSupplierSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   useEffect(() => {
     fetch(`/api/projects/${params.projectId}`)
       .then(r => r.json())
-      .then(data => {
-        if (data.error) setError(data.error)
-        else setProject(data)
-        setLoading(false)
-      })
-      .catch(() => { setError('Failed to load project'); setLoading(false) })
+      .then(data => { setProject(data); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [params.projectId])
 
   if (loading) return <div style={{ padding: 40, color: 'var(--muted2)' }}>Loading…</div>
-  if (error || !project) return <div style={{ padding: 40 }}>
-    <Link href="/planned-products" style={{ color: 'var(--blue)', fontSize: 13 }}>← All Products</Link>
-    <p style={{ marginTop: 16, color: 'var(--muted2)' }}>Project not found.</p>
-  </div>
+  if (!project) return (
+    <div style={{ padding: 40 }}>
+      <Link href="/planned-products" style={{ color: 'var(--blue)', fontSize: 13 }}>← All Products</Link>
+      <p style={{ marginTop: 16, color: 'var(--muted2)' }}>Project not found.</p>
+    </div>
+  )
 
-  // Pipeline position
   const stagesWithCount: Record<string, number> = {}
-  project.suppliers.forEach(s => {
-    stagesWithCount[s.pipelineStage] = (stagesWithCount[s.pipelineStage] ?? 0) + 1
+  project.suppliers.forEach(s => { stagesWithCount[s.pipelineStage] = (stagesWithCount[s.pipelineStage] ?? 0) + 1 })
+  const shortlistedCount = stagesWithCount['Shortlisted'] ?? project.suppliers.length
+
+  const filteredSuppliers = project.suppliers.filter(s => {
+    if (supplierSearch && !s.name.toLowerCase().includes(supplierSearch.toLowerCase())) return false
+    if (statusFilter && s.stage !== statusFilter) return false
+    return true
   })
 
-  const highestStageIdx = PIPELINE_STAGES.reduce((maxIdx, stage, idx) => {
-    return stagesWithCount[stage] ? idx : maxIdx
-  }, 0)
+  const uniqueStages = [...new Set(project.suppliers.map(s => s.stage))]
+
+  // Derive the project initials from name
+  const initials = project.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
   return (
     <div style={{ padding: '24px 32px', maxWidth: 1200 }}>
-      {/* Back link */}
-      <Link
-        href="/planned-products"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', textDecoration: 'none', marginBottom: 16 }}
-      >
-        <NavIcon name="arrow-left" size={14} />
-        All Projects
+      {/* Back */}
+      <Link href="/planned-products" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', textDecoration: 'none', marginBottom: 20 }}>
+        <NavIcon name="arrow-left" size={13} /> All Projects
       </Link>
 
       {/* Project header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 'var(--r)',
-            background: 'var(--bg-soft)',
-            border: '1px solid var(--line)',
-            overflow: 'hidden',
-            flexShrink: 0,
-          }}
-        >
-          <img src={project.thumbnail} alt={project.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
+        {/* Initials placeholder (matches the real app "P2" style) */}
+        <div style={{
+          width: 56, height: 56, borderRadius: 'var(--r)', background: '#E8F5EC',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, fontWeight: 700, color: '#15803D', flexShrink: 0, border: '1px solid #BBF7D0',
+        }}>
+          {initials}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>{project.name}</h1>
             <StatusPill label={project.type} />
-            <StatusPill label={project.status} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 13, color: 'var(--muted2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, color: 'var(--muted2)', flexWrap: 'wrap' }}>
+            <StatusPill label={project.status} />
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <NavIcon name="calendar" size={13} /> {project.date}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <NavIcon name="users" size={13} /> {project.teamMembers} Team Members
             </span>
+            <button style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#2563EB', fontWeight: 500 }}>
+              <NavIcon name="user-plus" size={13} /> Invite
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', background: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-            <NavIcon name="user-plus" size={13} /> Invite
-          </button>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', background: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-            Options <NavIcon name="chevron-down" size={13} />
-          </button>
-        </div>
+        <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', background: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+          Options <NavIcon name="chevron-down" size={13} />
+        </button>
       </div>
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--line)', marginBottom: 24 }}>
         {['Timeline', 'Suppliers', 'Advanced Analysis ✨', 'Documents', 'Project Details'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+          <button key={tab} onClick={() => setActiveTab(tab)}
             style={{
-              padding: '9px 18px',
-              fontSize: 13.5,
-              fontWeight: activeTab === tab ? 600 : 400,
-              color: activeTab === tab ? 'var(--ink)' : 'var(--muted2)',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === tab ? '2px solid var(--yellow-press)' : '2px solid transparent',
-              cursor: 'pointer',
-              marginBottom: -1,
-            }}
-          >
+              padding: '9px 18px', fontSize: 13.5, fontWeight: activeTab === tab ? 600 : 400,
+              color: activeTab === tab ? 'var(--ink)' : 'var(--muted2)', background: 'none', border: 'none',
+              borderBottom: activeTab === tab ? '2px solid #FACC15' : '2px solid transparent',
+              cursor: 'pointer', marginBottom: -1, whiteSpace: 'nowrap',
+            }}>
             {tab}
           </button>
         ))}
       </div>
 
       {activeTab !== 'Suppliers' ? (
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted2)', fontSize: 14 }}>
-          {activeTab} content coming soon.
-        </div>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted2)', fontSize: 14 }}>{activeTab} content coming soon.</div>
       ) : (
         <>
           {/* All Suppliers header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)' }}>All Suppliers</h2>
-            <button
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 14px',
-                border: '1px solid var(--line2)',
-                borderRadius: 'var(--r-sm)',
-                background: 'white',
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
+            <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--line2)', borderRadius: 'var(--r-sm)', background: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <NavIcon name="plus" size={13} /> Add Supplier
             </button>
           </div>
 
           {/* Keychain AI banner */}
           {aiBannerVisible && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 12,
-                padding: '12px 16px',
-                background: '#FFFDF0',
-                border: '1px solid var(--yellow-press)',
-                borderRadius: 'var(--r)',
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ fontSize: 18, marginTop: 1 }}>
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                  <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 18px', background: '#FFFDF0', border: '1px solid #FDE047', borderRadius: 'var(--r)', marginBottom: 20 }}>
+              {/* Radio/sparkle icon */}
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FDE047', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#92660C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>
-                  Keychain AI is searching for best-suited manufacturers.
+                  Keychain AI{' '}
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline' }}>
+                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                  </svg>
+                  {' '}is searching for best-suited manufacturers.
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--muted2)' }}>
-                  Based on your product specifications, Keychain AI is identifying and shortlisting the most capable suppliers for your review.
+                  We'll share your project details with suppliers and notify you as soon as they respond.
                 </div>
               </div>
-              <button
-                onClick={() => setAiBannerVisible(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', fontSize: 12, fontWeight: 500, padding: '2px 4px' }}
-              >
+              <button onClick={() => setAiBannerVisible(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--muted2)', padding: '2px 4px', whiteSpace: 'nowrap' }}>
                 Hide
               </button>
             </div>
           )}
 
           {/* Pipeline stepper */}
-          <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '20px 24px', marginBottom: 20, boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-              {/* connector line */}
-              <div style={{ position: 'absolute', top: 16, left: '10%', right: '10%', height: 2, background: 'var(--line)', zIndex: 0 }} />
+          <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '20px 32px', marginBottom: 20, boxShadow: 'var(--shadow-card)', background: 'white' }}>
+            <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 16, left: '8%', right: '8%', height: 1.5, background: 'var(--line)', zIndex: 0 }} />
               {PIPELINE_STAGES.map((stage, idx) => {
-                const count = stagesWithCount[stage] ?? 0
-                const completed = idx < highestStageIdx
-                const current = idx === highestStageIdx
+                const count = stagesWithCount[stage] ?? (stage === 'Shortlisted' ? shortlistedCount : 0)
+                const isFirst = idx === 0
+                const completed = isFirst
+                const current = !isFirst && idx === 1
                 return (
-                  <div key={stage} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, zIndex: 1, flex: 1 }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: completed ? 'var(--green)' : current ? 'var(--ink)' : 'white',
-                        border: completed ? '2px solid var(--green)' : current ? '2px solid var(--ink)' : '2px solid var(--line)',
-                        color: completed || current ? 'white' : 'var(--muted)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {completed ? <NavIcon name="check" size={14} /> : idx + 1}
+                  <div key={stage} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 1, flex: 1 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: completed ? 'var(--pill-green-DEFAULT, #15803D)' : current ? 'var(--ink)' : 'white',
+                      border: completed ? '2px solid #15803D' : current ? '2px solid var(--ink)' : '2px solid var(--line)',
+                      color: completed || current ? 'white' : 'var(--muted)',
+                      fontSize: 12, fontWeight: 600,
+                    }}>
+                      {completed ? <NavIcon name="check" size={14} /> : <div style={{ width: 10, height: 10, borderRadius: '50%', background: current ? 'white' : 'var(--line2)' }} />}
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 12.5, fontWeight: current ? 600 : 400, color: current ? 'var(--ink)' : 'var(--muted2)' }}>
-                        {stage} {count > 0 && `(${count})`}
+                      <div style={{ fontSize: 12.5, fontWeight: 500, color: completed || current ? 'var(--ink)' : 'var(--muted2)' }}>
+                        {stage} {count > 0 && <span style={{ fontWeight: 600 }}>{count}</span>}
                       </div>
                     </div>
                   </div>
@@ -243,123 +197,100 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
             </div>
           </div>
 
+          {/* Search + Status filter row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--placeholder)' }}>
+                <NavIcon name="search" size={14} />
+              </span>
+              <input type="text" placeholder="Search Suppliers" value={supplierSearch} onChange={e => setSupplierSearch(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 'var(--r)', border: '1px solid var(--line)', fontSize: 13.5, outline: 'none' }} />
+            </div>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              style={{ padding: '8px 32px 8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--line)', fontSize: 13.5, color: 'var(--ink)', background: 'white', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}>
+              <option value="">Status</option>
+              {uniqueStages.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
           {/* Supplier table */}
           <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-soft)' }}>
                   {['Manufacturer', 'Added by', 'Current Status', 'Next Steps', ''].map((col, i) => (
-                    <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--line)' }}>
-                      {col}
-                    </th>
+                    <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>{col}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {project.suppliers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--muted2)' }}>
-                      No suppliers yet. Click &quot;Add Supplier&quot; to get started.
-                    </td>
-                  </tr>
-                ) : (
-                  project.suppliers.map((s, i) => (
-                    <tr
-                      key={s.id}
-                      style={{ borderBottom: i < project.suppliers.length - 1 ? '1px solid var(--line)' : 'none', background: 'white' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'white')}
-                    >
-                      {/* Manufacturer */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 8,
-                              background: s.logoBg,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: s.logoColor,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {s.logoInitials}
-                          </div>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>
-                              {s.name}
-                              {s.keychainPreferred && (
-                                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                                </svg>
-                              )}
-                            </div>
-                            {s.keychainPreferred && (
-                              <div style={{ fontSize: 11, color: '#ca8a04', fontWeight: 500 }}>Keychain Preferred</div>
-                            )}
-                          </div>
+                {filteredSuppliers.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: 40, textAlign: 'center', color: 'var(--muted2)' }}>No suppliers found.</td></tr>
+                ) : filteredSuppliers.map((s, i) => (
+                  <tr key={s.id}
+                    style={{ borderBottom: i < filteredSuppliers.length - 1 ? '1px solid var(--line)' : 'none', background: 'white' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                  >
+                    {/* Manufacturer */}
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: s.logoBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: s.logoColor, flexShrink: 0 }}>
+                          {s.logoInitials}
                         </div>
-                      </td>
-
-                      {/* Added by */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>
-                          {s.addedByType === 'ai' ? (
-                            <>
-                              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                              </svg>
-                              {s.addedBy}
-                            </>
-                          ) : (
-                            <>
-                              <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                AS
-                              </div>
-                              {s.addedBy}
-                            </>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>
+                            {s.name}
+                            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                            </svg>
+                          </div>
+                          {s.keychainPreferred && (
+                            <div style={{ fontSize: 11.5, color: '#ca8a04', fontWeight: 500 }}>Keychain Preferred</div>
                           )}
                         </div>
-                      </td>
-
-                      {/* Status */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <StatusPill label={s.stage} />
-                      </td>
-
-                      {/* Next Steps */}
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--muted)' }}>
-                        {s.nextSteps.map((step, si) => (
-                          <div key={si}>• {step}</div>
-                        ))}
-                      </td>
-
-                      {/* View Tasks */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <button
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 'var(--r-sm)',
-                            border: 'none',
-                            background: 'var(--ink)',
-                            color: 'white',
-                            fontSize: 13,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          View Tasks
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                      </div>
+                    </td>
+                    {/* Added by */}
+                    <td style={{ padding: '14px 16px' }}>
+                      {s.addedByType === 'ai' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#FDE047', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#92660C', flexShrink: 0 }}>k</div>
+                          <span style={{ fontSize: 13, color: 'var(--ink)' }}>{s.addedBy}</span>
+                          <span style={{ cursor: 'pointer', color: 'var(--muted2)' }}><NavIcon name="info" size={13} /></span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--ink)', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>AS</div>
+                          <span style={{ fontSize: 13, color: 'var(--ink)' }}>{s.addedBy}</span>
+                        </div>
+                      )}
+                    </td>
+                    {/* Status */}
+                    <td style={{ padding: '14px 16px' }}>
+                      <StatusPill label={s.stage} />
+                    </td>
+                    {/* Next Steps */}
+                    <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--muted)' }}>
+                      {s.nextSteps.map((step, si) => (
+                        <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {si === 0 && step === 'Review Response' && (
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', flexShrink: 0 }} />
+                          )}
+                          {step}
+                        </div>
+                      ))}
+                    </td>
+                    {/* View Tasks */}
+                    <td style={{ padding: '14px 16px' }}>
+                      <Link
+                        href={`/planned-products/${params.projectId}/tasks/${s.id}`}
+                        style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 'var(--r-sm)', border: 'none', background: 'var(--ink)', color: 'white', fontSize: 13, fontWeight: 500, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                        View Tasks
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
