@@ -388,7 +388,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
 
           {/* Search + Status filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
               <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}>
                 <NavIcon name="search" size={14} />
               </span>
@@ -421,6 +421,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
                 outline: 'none',
                 cursor: 'pointer',
                 appearance: 'none',
+                flexShrink: 0,
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'right 10px center',

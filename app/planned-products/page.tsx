@@ -346,25 +346,28 @@ function AllProductsTab({
   return (
     <>
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        {/* Search input — no icon, per spec */}
-        <input
-          type="text"
-          placeholder="Search Planned Products..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            padding: '7px 12px',
-            borderRadius: 8,
-            border: '1px solid var(--line)',
-            fontSize: 13.5,
-            color: 'var(--ink)',
-            outline: 'none',
-            width: 240,
-          }}
-        />
-        <div style={{ flex: 1 }} />
-        {/* Filter dropdowns */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, width: '100%' }}>
+        {/* Search input — takes available space */}
+        <div style={{ position: 'relative', flex: 1 }}>
+          <input
+            type="text"
+            placeholder="Search Planned Products..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '7px 12px',
+              borderRadius: 8,
+              border: '1px solid var(--line)',
+              fontSize: 13.5,
+              color: 'var(--ink)',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+        {/* Filter dropdowns — right side, don't shrink */}
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
         {[
           { key: 'stage', label: 'Stage', value: stageFilter, options: result?.filters.stages ?? [], setter: setStageFilter },
           { key: 'brand', label: 'Brand', value: brandFilter, options: result?.filters.brands ?? [], setter: setBrandFilter },
@@ -426,6 +429,7 @@ function AllProductsTab({
             )}
           </div>
         ))}
+        </div>
       </div>
 
       {/* Table */}

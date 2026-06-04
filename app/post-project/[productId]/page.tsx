@@ -113,11 +113,11 @@ export default function PostProjectPage({ params }: { params: { productId: strin
           {/* Estimated annual volume */}
           <Field label="Estimated annual volume*">
             <div style={{ display: 'flex', gap: 8 }}>
-              <select value={form.volumeRange} onChange={e => set('volumeRange', e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+              <select value={form.volumeRange} onChange={e => set('volumeRange', e.target.value)} style={{ ...selectStyle, flex: 1, width: 'auto' }}>
                 <option value="">Volume range</option>
                 {VOLUME_RANGES.map(v => <option key={v}>{v}</option>)}
               </select>
-              <select value={form.volumeUnit} onChange={e => set('volumeUnit', e.target.value)} style={{ ...selectStyle, width: 100 }}>
+              <select value={form.volumeUnit} onChange={e => set('volumeUnit', e.target.value)} style={{ ...selectStyle, width: 110, flex: 'none' }}>
                 {VOLUME_UNITS.map(u => <option key={u}>{u}</option>)}
               </select>
             </div>
@@ -178,7 +178,7 @@ export default function PostProjectPage({ params }: { params: { productId: strin
           {/* Team project */}
           <Field label="Team project">
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select value={form.teamProject} onChange={e => set('teamProject', e.target.value)} style={{ ...selectStyle, flex: 1 }}>
+              <select value={form.teamProject} onChange={e => set('teamProject', e.target.value)} style={{ ...selectStyle, flex: 1, width: 'auto' }}>
                 <option>Private project</option>
                 <option>Team project</option>
               </select>
@@ -213,7 +213,7 @@ export default function PostProjectPage({ params }: { params: { productId: strin
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: 'var(--ink)' }}>Product-Specific Criteria ⓘ</span>
-                <select style={{ ...selectStyle, flex: 1, fontSize: 13 }}>
+                <select style={{ ...selectStyle, flex: 1, width: 'auto', fontSize: 13 }}>
                   <option>Select Criteria Set</option>
                 </select>
               </div>
@@ -283,11 +283,27 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', borderRadius: 'var(--r)',
-  border: '1px solid var(--line)', fontSize: 13.5, color: 'var(--ink)', outline: 'none', background: 'white',
+  width: '100%',
+  padding: '9px 12px',
+  borderRadius: 8,
+  border: '1px solid #E5E7EB',
+  fontSize: 13.5,
+  color: '#020817',
+  outline: 'none',
+  background: 'white',
+  fontFamily: 'inherit',
 }
 
 const selectStyle: React.CSSProperties = {
-  padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--line)',
-  fontSize: 13.5, color: 'var(--ink)', outline: 'none', background: 'white', cursor: 'pointer',
+  width: '100%',
+  padding: '9px 36px 9px 12px',
+  borderRadius: 8,
+  border: '1px solid #E5E7EB',
+  fontSize: 13.5,
+  color: '#020817',
+  background: `white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat right 10px center / 16px`,
+  outline: 'none',
+  cursor: 'pointer',
+  appearance: 'none',
+  WebkitAppearance: 'none',
 }
