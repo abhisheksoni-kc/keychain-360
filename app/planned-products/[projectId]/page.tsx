@@ -65,7 +65,7 @@ export default function ProjectDetailPage({ params }: { params: { projectId: str
     return true
   })
 
-  const uniqueStages = [...new Set(project.suppliers.map(s => s.stage))]
+  const uniqueStages = Array.from(new Set(project.suppliers.map(s => s.stage)))
 
   // Derive the project initials from name
   const initials = project.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
